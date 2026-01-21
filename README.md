@@ -1,19 +1,24 @@
-# QQ邮箱发送服务端
+# PX Tools（邮件发送 + LLM 工具服务）
 
-基于 Flask 的 QQ 邮箱发送服务，提供 HTTP API 接口用于发送邮件。
+基于 Flask 的轻量工具服务，提供 HTTP API 接口用于：
+
+- 发送 QQ 邮箱邮件（SMTP）
+- 通用 LLM 提问（阿里云百炼 OpenAI 兼容接口）
 
 ## 功能特性
 
 - ✅ 使用 QQ 邮箱 SMTP 服务发送邮件
+- ✅ 通用 LLM 提问接口（支持 `model`、`enable_search`）
 - ✅ RESTful API 接口
 - ✅ 支持纯文本和 HTML 格式邮件
 - ✅ 健康检查接口
-- ✅ 错误处理和日志记录
+- ✅ 错误处理
 
 ## 环境要求
 
 - Python 3.7+
 - QQ 邮箱账号（需要开启 SMTP 服务并获取授权码）
+- 阿里云百炼 API Key（用于 LLM 能力，环境变量 `DASHSCOPE_API_KEY`）
 
 ## 快速开始
 
@@ -49,6 +54,7 @@ cp env.example .env
 ```env
 QQ_EMAIL=your_qq_email@qq.com
 QQ_PASSWORD=your_qq_auth_code
+DASHSCOPE_API_KEY=your_dashscope_api_key
 ```
 
 **重要：如何获取 QQ 邮箱授权码**
@@ -74,7 +80,7 @@ python app.py
 
 ### 1. 健康检查
 
-**接口地址：** `GET /health`
+**接口地址：** `GET /health_check`
 
 **响应示例：**
 
@@ -136,7 +142,7 @@ Content-Type: application/json
 
 ### 3. 发送邮件
 
-**接口地址：** `POST /send`
+**接口地址：** `POST /send_email`
 
 **请求头：**
 
@@ -197,7 +203,7 @@ Content-Type: application/json
 ### 使用 curl 发送邮件
 
 ```bash
-curl -X POST http://localhost:10101/send \
+curl -X POST http://localhost:10101/send_email \
   -H "Content-Type: application/json" \
   -d '{
     "to_email": "recipient@example.com",
@@ -212,7 +218,7 @@ curl -X POST http://localhost:10101/send \
 ```python
 import requests
 
-url = "http://localhost:10101/send"
+url = "http://localhost:10101/send_email"
 data = {
     "to_email": "recipient@example.com",
     "subject": "测试邮件",
@@ -227,7 +233,7 @@ print(response.json())
 ### 发送 HTML 格式邮件
 
 ```bash
-curl -X POST http://localhost:10101/send \
+curl -X POST http://localhost:10101/send_email \
   -H "Content-Type: application/json" \
   -d '{
     "to_email": "recipient@example.com",
