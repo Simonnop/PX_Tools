@@ -1,7 +1,9 @@
 import os
+from typing import Iterable
 
 from dotenv import load_dotenv
 from openai import OpenAI
+from werkzeug.datastructures import FileStorage
 
 # 加载环境变量
 load_dotenv()
@@ -59,3 +61,60 @@ def ask_llm(question: str, model: str = "qwen-plus", enable_search: bool = True)
 
     except Exception as e:
         return False, str(e)
+
+
+def ask_llm_with_files(question: str, files: Iterable[FileStorage]):
+    """
+    使用 qwen-long 模型并携带上传文件进行问答，禁用联网搜索。
+    """
+    if not question or not str(question).strip():
+        return False, "question 不能为空"
+
+    file_list = [f for f in files or [] if f and getattr(f, "filename", "")]
+    if not file_list:
+        return False, "files 不能为空"
+
+    client = None
+    uploaded = []
+    try:
+        client = _get_openai_client()
+
+        for f in file_list:
+            try:
+                f.stream.seek(0)
+            except Exception:
+                # 流不支持 seek 时直接忽略
+                pass
+
+            file_obj = client.files.create(
+                file=(f.filename, f.stream),
+                purpose="file-extract",
+            )
+            uploaded.append(file_obj)
+
+        fileids_str = ",".join([f"fileid://{obj.id}" for obj in uploaded])
+
+        completion = client.chat.completions.create(
+            model="qwen-long",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "system", "content": fileids_str},
+                {"role": "user", "content": question},
+            ],
+            extra_body={"enable_search": False},
+        )
+
+        content = completion.choices[0].message.content
+        return True, content
+
+    except Exception as e:
+        return False, str(e)
+
+    finally:
+        if client and uploaded:
+            for obj in uploaded:
+                try:
+                    client.files.delete(obj.id)
+                except Exception:
+                    # 删除失败不阻断主流程
+                    pass

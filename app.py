@@ -7,7 +7,7 @@ QQ邮箱发送服务端
 
 from flask import Flask, request, jsonify
 from apps.mail import send_email
-from apps.llm import ask_llm
+from apps.llm import ask_llm, ask_llm_with_files
 
 app = Flask(__name__)
 # 让 jsonify 输出中文不被 \uXXXX 转义（Flask 2/3 兼容写法）
@@ -81,6 +81,59 @@ def llm_ask():
                 "message": "LLM 调用失败",
                 "error": result
             }), 500
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": f"处理请求时发生错误: {str(e)}"
+        }), 500
+
+
+@app.route('/llm/ask_with_files', methods=['POST'])
+def llm_ask_with_files():
+    """
+    携带文件的问答接口，模型强制使用 qwen-long，禁用联网搜索。
+
+    请求方式:
+        multipart/form-data
+    表单字段:
+        question: 必填，提问文本
+        files:    必填，文件列表（可上传多个）
+    """
+    try:
+        question = request.form.get("question")
+        files = request.files.getlist("files")
+
+        if not question or not str(question).strip():
+            return jsonify({
+                "success": False,
+                "message": "question 不能为空"
+            }), 400
+
+        if not files:
+            return jsonify({
+                "success": False,
+                "message": "files 不能为空"
+            }), 400
+
+        success, result = ask_llm_with_files(question, files)
+
+        if success:
+            return jsonify({
+                "success": True,
+                "message": "调用成功",
+                "data": {
+                    "answer": result,
+                    "model": "qwen-long",
+                    "enable_search": False
+                }
+            }), 200
+
+        return jsonify({
+            "success": False,
+            "message": "LLM 调用失败",
+            "error": result
+        }), 500
 
     except Exception as e:
         return jsonify({
