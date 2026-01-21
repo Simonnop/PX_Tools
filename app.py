@@ -10,6 +10,12 @@ from apps.mail import send_email
 from apps.llm import ask_llm
 
 app = Flask(__name__)
+# 让 jsonify 输出中文不被 \uXXXX 转义（Flask 2/3 兼容写法）
+app.config["JSON_AS_ASCII"] = False
+try:
+    app.json.ensure_ascii = False
+except Exception:
+    pass
 
 @app.route('/health_check', methods=['GET'])
 def health_check():
@@ -29,7 +35,7 @@ def llm_ask():
     {
         "question": "必填，提问文本",
         "model": "可选，模型名称，默认 qwen-plus",
-        "enable_search": true  // 可选，是否启用检索，默认 true
+        "enable_search": false  // 可选，是否启用检索，默认 false
     }
 
     返回:
@@ -49,7 +55,7 @@ def llm_ask():
         data = request.get_json(silent=True) or {}
         question = data.get("question")
         model = data.get("model") or "qwen-plus"
-        enable_search = data.get("enable_search", True)
+        enable_search = data.get("enable_search", False)
 
         if not question or not str(question).strip():
             return jsonify({
