@@ -89,7 +89,7 @@ def llm_ask():
         }), 500
 
 
-@app.route('/send_email', methods=['POST'])
+@app.route('/send', methods=['POST'])
 def send_mail():
     """
     发送邮件接口
