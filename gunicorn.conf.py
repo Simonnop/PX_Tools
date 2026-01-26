@@ -8,7 +8,7 @@ import os
 bind = "0.0.0.0:10101"
 workers = 1
 worker_class = "sync"
-timeout = 120
+timeout = 600
 keepalive = 5
 
 # 日志配置
